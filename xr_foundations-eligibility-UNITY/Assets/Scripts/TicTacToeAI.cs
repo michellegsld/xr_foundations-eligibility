@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -13,8 +13,17 @@ public class WinnerEvent : UnityEvent<int>
 {
 }
 
+/**
+	0 | 1 | 2
+	3 | 4 | 5
+	6 | 7 | 8
+ */
+
 public class TicTacToeAI : MonoBehaviour
 {
+	// To tell the total number of spots used
+	private int move = 0;
+
 	// to set the ai difficulty, either 0 or 1
 	int _aiLevel;
 
@@ -33,10 +42,13 @@ public class TicTacToeAI : MonoBehaviour
 	[SerializeField]
 	private int _gridSize = 3;
 
+	// To print the grid more easily
+	private String grid = "";
+
 	// to assign player & ai visuals (states are the icons)
 	[SerializeField]
-	private TicTacToeState playerState = TicTacToeState.cross;
-	TicTacToeState aiState = TicTacToeState.circle;
+	private TicTacToeState playerState = TicTacToeState.circle;
+	TicTacToeState aiState = TicTacToeState.cross;
 
 	// To assign the actual icon GameObjects in the inspector
 	[SerializeField]
@@ -80,35 +92,75 @@ public class TicTacToeAI : MonoBehaviour
 	{
 		_triggers = new ClickTrigger[3,3];
 
-		// initalizes new boardState to none
-		boardState = new TicTacToeState[_gridSize,_gridSize];
+		initalizeBoard();
+		onGameStarted.Invoke();
+	}
+
+	// initalizes new boardState to none
+	private void initalizeBoard() {
+		if(boardState == null)
+			boardState = new TicTacToeState[_gridSize,_gridSize];
+
 		for (int i = 0; i < _gridSize; i++) {
 			for (int j = 0; j < _gridSize; j++) {
-				boardState[i,j] = (int) TicTacToeState.none;
+				boardState[i, j] = (int) TicTacToeState.none;
 			}
 		}
+	}
 
-		onGameStarted.Invoke();
+	// Call to check if the spot on the grid is free
+	private bool ValidSpot(int x, int y) {
+		if (boardState[x, y] == (int) TicTacToeState.none)
+			return true;
+		return false;
 	}
 
 	// Called under: ClickTrigger.cs -> ClickTrigger.OnMouseDown()
 	// Displays Player icon at a specific point on the tic-tac-toe grid
 	public void PlayerSelects(int coordX, int coordY){
 		if (_isPlayerTurn && ValidSpot(coordX, coordY))
-		{
 			SetVisual(coordX, coordY, playerState);
-			_isPlayerTurn = false;
-		}
 	}
 
 	// Called under: ???
 	// Displays AI icon at a specific point on the tic-tac-toe grid
 	public void AiSelects(int coordX, int coordY){
-		if (!_isPlayerTurn && ValidSpot(coordX, coordY))
-		{
-			SetVisual(coordX, coordY, aiState);
-			_isPlayerTurn = true;
+		SetVisual(coordX, coordY, aiState);
+		_isPlayerTurn = true;
+	}
+
+	// Called under: OnGUI()
+	// Returns the tic-tac-toe grid as a string to print
+	private String getGrid() {
+		grid = "";
+
+		if(boardState == null)
+			initalizeBoard();
+
+		for (int row = 0; row < 3; row++) {
+			for (int col = 0; col < 3; col++) {
+				if (boardState[row, col] == TicTacToeState.circle) {
+					grid += "[o]";
+				} else if (boardState[row, col] == TicTacToeState.cross) {
+					grid += "[x]";
+				} else {
+					grid += "[_]";
+				}
+			}
+			grid += "\n";
 		}
+
+		return grid;
+	}
+
+	// To actually display the text version of the grid
+	void OnGUI() {
+		GUIStyle guiSty = new GUIStyle();
+		guiSty.fontSize = 50;
+
+		String printGrid = getGrid();
+
+		GUI.Label(new Rect(25, 20, 200, 200), printGrid, guiSty);
 	}
 
 	// Called under: PlayerSelects(int x, int y) and AiSelects(int x, int y)
@@ -123,17 +175,202 @@ public class TicTacToeAI : MonoBehaviour
 		);
 
 		boardState[coordX, coordY] = targetState; // Saves this placement
+		move++;
+
+		// check if that was winning move to end game
+		// else if no empty spots then ended in tie
+
+		// Next player's turn
+		if (_isPlayerTurn) {
+			_isPlayerTurn = false;
+			AiPlacement(coordX, coordY);
+		}
+
+		// call func to check for win?
+
+		if (move == 9) {
+			// check for win, going to create row search, 
+		}
 	}
 
-	private void AiPlacement(){
-		// math to determine placement
+	private Tuple<int,int> gridLinearSearch(int row, int col) {
+		int rowCount = 0;
+		int colCount = 0;
 
+		int iEmpty = -1;
+		int jEmpty = -1;
+
+		for (int x = 0; x < _gridSize; x++) {
+			if (boardState[row, x] == TicTacToeState.circle) {
+				rowCount++;
+			} else if (boardState[row, x] == TicTacToeState.none) {
+				jEmpty = x;
+			}
+			if (boardState[x, col]== TicTacToeState.circle) {
+				colCount++;
+			} else if (boardState[x, col] == TicTacToeState.none) {
+				iEmpty = x;
+			}
+		}
+
+		if (rowCount == 2) {
+			return Tuple.Create(row, jEmpty);
+		} else if (colCount == 2) {
+			return Tuple.Create(iEmpty, col);
+		} else {
+			return Tuple.Create(-1, -1);
+		}
 	}
 
-	// Call to check if the spot on the grid is free
-	private bool ValidSpot(int x, int y) {
-		if (boardState[x, y] == (int) TicTacToeState.none)
-			return true;
-		return false;
+	private Tuple<int,int> gridDiagonalSearch(int row, int col) {
+		int rLCount = 0;
+		int lRCount = 0;
+
+		int iEmpty = -1;
+		int jEmpty = -1;
+
+		for (int i = 0; i < _gridSize; i++) {
+			if (boardState[i, i] == TicTacToeState.circle) {
+				rLCount++;
+			} else if (boardState[row, i] == TicTacToeState.none) {
+				iEmpty = i;
+			}
+		}
+
+		if (rLCount == 2) {
+			return Tuple.Create(iEmpty, iEmpty);
+		} else if (row + col != 2) {
+			return Tuple.Create(-1, -1);
+		}
+
+		for (int i = 0; i < 3; i++){
+			for (int j = 2; j >= 0 && i + j == 2; j--) {
+				if (boardState[i, j] == TicTacToeState.circle) {
+					lRCount++;
+				} else if (boardState[row, i] == TicTacToeState.none) {
+					iEmpty = i;
+					jEmpty = j;
+				}
+			}
+		}
+
+		if (lRCount == 2) {
+			return Tuple.Create(iEmpty, jEmpty);
+		} else {
+			return Tuple.Create(-1, -1);
+		}
 	}
+
+	// This function makes the move for the ai
+	// Change this to account for difficulty?
+	private void AiPlacement(int x, int y){
+		Tuple<int, int> rndOption = randomSelection();
+		Tuple<int, int> aiOptionLinear = gridLinearSearch(x, y);
+		Tuple<int, int> aiOptionDiag = gridDiagonalSearch(x, y);
+
+		if (aiOptionLinear.Item1 != -1) {
+			AiSelects(aiOptionLinear.Item1, aiOptionLinear.Item2);
+		} else if (aiOptionDiag.Item1 != 1) {
+			AiSelects(aiOptionDiag.Item1, aiOptionDiag.Item2);
+		} else {
+			AiSelects(rndOption.Item1, rndOption.Item2);
+		}
+	}
+
+	// Returns where to find random empty spot on board
+	private Tuple<int, int> randomSelection() {
+		System.Random rnd = new System.Random();
+		int row = rnd.Next(0, 3);
+		int col = rnd.Next(0, 3);
+
+		do {
+			row = rnd.Next(0, 3);
+			col = rnd.Next(0, 3);
+		} while (boardState[row, col] != TicTacToeState.none);
+
+		return Tuple.Create(row, col);
+	}
+
+/*
+	private Tuple<int, int> AiBlocks(int row, int col) {
+		Tuple<int, int> rowTuple = null;
+		Tuple<int, int> columnTuple = null;
+		Tuple<int, int> rightLeftTuple = null;
+		Tuple<int, int> leftRightTuple = null;
+		
+		bool flagFound = false;
+		int emptyCount = 0;
+		int emptyFound = -1;
+
+		// Check row first
+		for (int y = 0; y < _gridSize && y != col; y++) {
+			if (boardState[row, y] == TicTacToeState.circle) {
+				flagFound = true;
+			} else {
+				emptyFound = y;
+				emptyCount++;
+			}
+		}
+
+		if (flagFound && emptyCount == 1)
+			rowTuple = Tuple.Create(row, emptyFound);
+
+		flagFound = false;
+		emptyCount = 0;
+		emptyFound = -1;
+
+		// Check column second
+		for (int x = 0; x < _gridSize && x != row; x++) {
+			if (boardState[x, col] == TicTacToeState.circle) {
+				flagFound = true;
+			} else {
+				emptyFound = x;
+				emptyCount++;
+			}
+			if (flagFound && emptyCount == 1)
+				columnTuple = Tuple.Create(emptyFound, col);
+		}
+
+		flagFound = false;
+		emptyCount = 0;
+		emptyFound = -1;
+
+		// Check L->R Diag, where index ==
+		if (row == col) {
+			for (int i = 0; i < 3 && i != row; i++) {
+				if (boardState[i, i] == TicTacToeState.circle) {
+					flagFound = true;
+				} else {
+					emptyFound = i;
+					emptyCount++;
+				}
+			}
+			if (flagFound && emptyCount == 1)
+					rightLeftTuple = Tuple.Create(emptyFound, emptyFound);
+		}
+
+		flagFound = false;
+		emptyCount = 0;
+		emptyFound = -1;
+
+		// Check R -> L Diag, index +  = 2
+		if (row + col == 2) {
+			for (int i = 0; i < 3; i++){
+				for (int j = 2; j >= 0 && i + j == 2; j--) {
+					if (boardState[i, j] == TicTacToeState.circle) {
+						flagFound = true;
+					} else {
+						emptyFound = j;
+						emptyCount++;
+					}
+				}
+				if (flagFound && emptyCount == 1)
+					leftRightTuple = Tuple.Create(i, emptyFound);
+			}
+		}
+
+		return Tuple.Create(-1, -1);
+	}
+	*/
+
 }
