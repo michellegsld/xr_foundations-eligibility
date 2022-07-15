@@ -94,7 +94,7 @@ public class TicTacToeAI : MonoBehaviour
 	// Called under: ClickTrigger.cs -> ClickTrigger.OnMouseDown()
 	// Displays Player icon at a specific point on the tic-tac-toe grid
 	public void PlayerSelects(int coordX, int coordY){
-		if (_isPlayerTurn || ValidSpot(coordX, coordY))
+		if (_isPlayerTurn && ValidSpot(coordX, coordY))
 		{
 			SetVisual(coordX, coordY, playerState);
 			_isPlayerTurn = false;
