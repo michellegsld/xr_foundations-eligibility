@@ -193,6 +193,37 @@ public class TicTacToeAI : MonoBehaviour
 		}
 	}
 
+	// This function makes the move for the ai
+	// Change this to account for difficulty?
+	private void AiPlacement(int x, int y){
+		Tuple<int, int> rndOption = randomSelection();
+		Tuple<int, int> aiOptionLinear = gridLinearSearch(x, y);
+		Tuple<int, int> aiOptionDiag = gridDiagonalSearch(x, y);
+
+		if (aiOptionLinear.Item1 != -1) {
+			AiSelects(aiOptionLinear.Item1, aiOptionLinear.Item2);
+		} else if (aiOptionDiag.Item1 != -1) {
+			AiSelects(aiOptionDiag.Item1, aiOptionDiag.Item2);
+		} else {
+			AiSelects(rndOption.Item1, rndOption.Item2);
+		}
+	}
+
+	// Returns where to find random empty spot on board
+	private Tuple<int, int> randomSelection() {
+		System.Random rnd = new System.Random();
+		int row = rnd.Next(0, 3);
+		int col = rnd.Next(0, 3);
+
+		do {
+			row = rnd.Next(0, 3);
+			col = rnd.Next(0, 3);
+		} while (boardState[row, col] != TicTacToeState.none);
+
+		return Tuple.Create(row, col);
+	}
+
+	// Searches by rows and columns
 	private Tuple<int,int> gridLinearSearch(int row, int col) {
 		int rowCount = 0;
 		int colCount = 0;
@@ -222,6 +253,7 @@ public class TicTacToeAI : MonoBehaviour
 		}
 	}
 
+	// Searches by checking diagonals
 	private Tuple<int,int> gridDiagonalSearch(int row, int col) {
 		int rLCount = 0;
 		int lRCount = 0;
@@ -260,117 +292,4 @@ public class TicTacToeAI : MonoBehaviour
 			return Tuple.Create(-1, -1);
 		}
 	}
-
-	// This function makes the move for the ai
-	// Change this to account for difficulty?
-	private void AiPlacement(int x, int y){
-		Tuple<int, int> rndOption = randomSelection();
-		Tuple<int, int> aiOptionLinear = gridLinearSearch(x, y);
-		Tuple<int, int> aiOptionDiag = gridDiagonalSearch(x, y);
-
-		if (aiOptionLinear.Item1 != -1) {
-			AiSelects(aiOptionLinear.Item1, aiOptionLinear.Item2);
-		} else if (aiOptionDiag.Item1 != 1) {
-			AiSelects(aiOptionDiag.Item1, aiOptionDiag.Item2);
-		} else {
-			AiSelects(rndOption.Item1, rndOption.Item2);
-		}
-	}
-
-	// Returns where to find random empty spot on board
-	private Tuple<int, int> randomSelection() {
-		System.Random rnd = new System.Random();
-		int row = rnd.Next(0, 3);
-		int col = rnd.Next(0, 3);
-
-		do {
-			row = rnd.Next(0, 3);
-			col = rnd.Next(0, 3);
-		} while (boardState[row, col] != TicTacToeState.none);
-
-		return Tuple.Create(row, col);
-	}
-
-/*
-	private Tuple<int, int> AiBlocks(int row, int col) {
-		Tuple<int, int> rowTuple = null;
-		Tuple<int, int> columnTuple = null;
-		Tuple<int, int> rightLeftTuple = null;
-		Tuple<int, int> leftRightTuple = null;
-		
-		bool flagFound = false;
-		int emptyCount = 0;
-		int emptyFound = -1;
-
-		// Check row first
-		for (int y = 0; y < _gridSize && y != col; y++) {
-			if (boardState[row, y] == TicTacToeState.circle) {
-				flagFound = true;
-			} else {
-				emptyFound = y;
-				emptyCount++;
-			}
-		}
-
-		if (flagFound && emptyCount == 1)
-			rowTuple = Tuple.Create(row, emptyFound);
-
-		flagFound = false;
-		emptyCount = 0;
-		emptyFound = -1;
-
-		// Check column second
-		for (int x = 0; x < _gridSize && x != row; x++) {
-			if (boardState[x, col] == TicTacToeState.circle) {
-				flagFound = true;
-			} else {
-				emptyFound = x;
-				emptyCount++;
-			}
-			if (flagFound && emptyCount == 1)
-				columnTuple = Tuple.Create(emptyFound, col);
-		}
-
-		flagFound = false;
-		emptyCount = 0;
-		emptyFound = -1;
-
-		// Check L->R Diag, where index ==
-		if (row == col) {
-			for (int i = 0; i < 3 && i != row; i++) {
-				if (boardState[i, i] == TicTacToeState.circle) {
-					flagFound = true;
-				} else {
-					emptyFound = i;
-					emptyCount++;
-				}
-			}
-			if (flagFound && emptyCount == 1)
-					rightLeftTuple = Tuple.Create(emptyFound, emptyFound);
-		}
-
-		flagFound = false;
-		emptyCount = 0;
-		emptyFound = -1;
-
-		// Check R -> L Diag, index +  = 2
-		if (row + col == 2) {
-			for (int i = 0; i < 3; i++){
-				for (int j = 2; j >= 0 && i + j == 2; j--) {
-					if (boardState[i, j] == TicTacToeState.circle) {
-						flagFound = true;
-					} else {
-						emptyFound = j;
-						emptyCount++;
-					}
-				}
-				if (flagFound && emptyCount == 1)
-					leftRightTuple = Tuple.Create(i, emptyFound);
-			}
-		}
-
-		return Tuple.Create(-1, -1);
-	}
-	*/
-
 }
