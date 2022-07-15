@@ -68,6 +68,7 @@ public class TicTacToeAI : MonoBehaviour
 	// makes up the spots you fill on the grid
 	ClickTrigger[,] _triggers;
 
+	// Called only once
 	private void Awake()
 	{
 		if(onPlayerWin == null){
@@ -112,7 +113,7 @@ public class TicTacToeAI : MonoBehaviour
 	}
 
 	// Called under: OnGUI()
-	// Returns the tic-tac-toe grid as a string to print
+	// Returns the tic-tac-toe grid as a string to be printed
 	private String getGrid() {
 		grid = "";
 
@@ -134,7 +135,6 @@ public class TicTacToeAI : MonoBehaviour
 
 		return grid;
 	}
-
 
 	// To actually display the text version of the grid
 	void OnGUI() {
@@ -164,7 +164,7 @@ public class TicTacToeAI : MonoBehaviour
 			_isPlayerTurn = false;
 		}
 
-		if (!_isPlayerTurn) 
+		if (!_isPlayerTurn)
 			AiPlacement(coordX, coordY);
 	}
 
@@ -266,7 +266,7 @@ public class TicTacToeAI : MonoBehaviour
 
 		int n = 0;
 
-
+		// R -> L Diagonal. They'd have the same index
 		for (int i = 0; i < _gridSize; i++) {
 			if (boardState[i, i] == TicTacToeState.circle) {
 				rLCount++;
@@ -281,18 +281,8 @@ public class TicTacToeAI : MonoBehaviour
 			return Tuple.Create(-1, -1);
 		}
 
-/*		for (int i = 0; i < 3; i++){
-			for (int j = 2; j >= 0 && i + j == 2; j--) {
-				if (boardState[i, j] == TicTacToeState.circle) {
-					lRCount++;
-				} else if (ValidSpot(i, j)) {
-					iEmpty = i;
-					jEmpty = j;
-				}
-			}
-		} */
-
-		for (int i = 0; i < 3; i++, n = 2 - i) {
+		// L -> R Diagonal. Their index would add up to = 2
+		for (int i = 0; i < _gridSize; i++, n = (_gridSize - 1) - i) {
 			if (boardState[i, n] == TicTacToeState.circle) {
 				lRCount++;
 			} else if (ValidSpot(i, n)) {
@@ -308,6 +298,7 @@ public class TicTacToeAI : MonoBehaviour
 		}
 	}
 
+	// Determines win condition if found
 	private void findWinner() {
 		if (_isPlayerTurn && isWinner(playerState)) {
 			winFlag = true;
@@ -324,33 +315,19 @@ public class TicTacToeAI : MonoBehaviour
 	// Hard code check for the winner
 	private bool isWinner(TicTacToeState winIcon) {
 		// rows:
-		if (boardState[0, 0] == winIcon && boardState[0, 1] == winIcon && boardState[0, 2] == winIcon) {
-			return true;
-		}
-		if (boardState[1, 0] == winIcon && boardState[1, 1] == winIcon && boardState[1, 2] == winIcon) {
-			return true;
-		}
-		if (boardState[2, 0] == winIcon && boardState[2, 1] == winIcon && boardState[2, 2] == winIcon) {
-			return true; }
+		if (boardState[0, 0] == winIcon && boardState[0, 1] == winIcon && boardState[0, 2] == winIcon) { return true; }
+		if (boardState[1, 0] == winIcon && boardState[1, 1] == winIcon && boardState[1, 2] == winIcon) { return true; }
+		if (boardState[2, 0] == winIcon && boardState[2, 1] == winIcon && boardState[2, 2] == winIcon) { return true; }
 
 		// columns:
-		if (boardState[0, 0] == winIcon && boardState[1, 0] == winIcon && boardState[2, 0] == winIcon) {
-			return true;
-		}
-		if (boardState[0, 1] == winIcon && boardState[1, 1] == winIcon && boardState[2, 1] == winIcon) {
-			return true;
-		}
-		if (boardState[0, 2] == winIcon && boardState[1, 2] == winIcon && boardState[2, 2] == winIcon) {
-			return true;
-		}
+		if (boardState[0, 0] == winIcon && boardState[1, 0] == winIcon && boardState[2, 0] == winIcon) { return true; }
+		if (boardState[0, 1] == winIcon && boardState[1, 1] == winIcon && boardState[2, 1] == winIcon) { return true; }
+		if (boardState[0, 2] == winIcon && boardState[1, 2] == winIcon && boardState[2, 2] == winIcon) { return true; }
 
 		// Right -> Left and Left -> Right diagonals:
-		if (boardState[0, 0] == winIcon && boardState[1, 1] == winIcon && boardState[2, 2] == winIcon) {
-			return true;
-		}
-		if (boardState[0, 2] == winIcon && boardState[1, 1] == winIcon && boardState[2, 0] == winIcon) {
-			return true;
-		}
+		if (boardState[0, 0] == winIcon && boardState[1, 1] == winIcon && boardState[2, 2] == winIcon) { return true; }
+		if (boardState[0, 2] == winIcon && boardState[1, 1] == winIcon && boardState[2, 0] == winIcon) { return true; }
+
 		return false;
 	}
 }
