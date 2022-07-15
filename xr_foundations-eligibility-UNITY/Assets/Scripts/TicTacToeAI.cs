@@ -22,7 +22,10 @@ public class WinnerEvent : UnityEvent<int>
 public class TicTacToeAI : MonoBehaviour
 {
 	// To tell the total number of spots used
-	private int move = 0;
+	private int movesLeft = 9;
+
+	// To tell the total number of spots used
+	private bool winFlag = false;
 
 	// to set the ai difficulty, either 0 or 1
 	int _aiLevel;
@@ -108,27 +111,6 @@ public class TicTacToeAI : MonoBehaviour
 		}
 	}
 
-	// Call to check if the spot on the grid is free
-	private bool ValidSpot(int x, int y) {
-		if (boardState[x, y] == (int) TicTacToeState.none)
-			return true;
-		return false;
-	}
-
-	// Called under: ClickTrigger.cs -> ClickTrigger.OnMouseDown()
-	// Displays Player icon at a specific point on the tic-tac-toe grid
-	public void PlayerSelects(int coordX, int coordY){
-		if (_isPlayerTurn && ValidSpot(coordX, coordY))
-			SetVisual(coordX, coordY, playerState);
-	}
-
-	// Called under: ???
-	// Displays AI icon at a specific point on the tic-tac-toe grid
-	public void AiSelects(int coordX, int coordY){
-		SetVisual(coordX, coordY, aiState);
-		_isPlayerTurn = true;
-	}
-
 	// Called under: OnGUI()
 	// Returns the tic-tac-toe grid as a string to print
 	private String getGrid() {
@@ -153,6 +135,7 @@ public class TicTacToeAI : MonoBehaviour
 		return grid;
 	}
 
+
 	// To actually display the text version of the grid
 	void OnGUI() {
 		GUIStyle guiSty = new GUIStyle();
@@ -161,6 +144,55 @@ public class TicTacToeAI : MonoBehaviour
 		String printGrid = getGrid();
 
 		GUI.Label(new Rect(25, 20, 200, 200), printGrid, guiSty);
+	}
+
+	// Call to check if the spot on the grid is free
+	private bool ValidSpot(int x, int y) {
+		if (x > -1 && y > -1 && boardState[x, y] == (int) TicTacToeState.none)
+			return true;
+
+		return false;
+	}
+
+	// Called under: ClickTrigger.cs -> ClickTrigger.OnMouseDown()
+	// Displays Player icon at a specific point on the tic-tac-toe grid
+	public void PlayerSelects(int coordX, int coordY){
+		if (_isPlayerTurn && ValidSpot(coordX, coordY)) {
+			movesLeft--;
+			SetVisual(coordX, coordY, playerState);
+			findWinner();
+			_isPlayerTurn = false;
+		}
+
+		if (!_isPlayerTurn) 
+			AiPlacement(coordX, coordY);
+	}
+
+	// Called under: AiPlacement(int x, int y)
+	// Displays AI icon at a specific point on the tic-tac-toe grid
+	public void AiSelects(int coordX, int coordY){
+		if (!winFlag && ValidSpot(coordX, coordY)) {
+			movesLeft--;
+			SetVisual(coordX, coordY, aiState);
+		}
+		findWinner();
+		_isPlayerTurn = true;
+	}
+
+	// This function makes the move for the ai
+	// Change this to account for difficulty?
+	private void AiPlacement(int x, int y){
+		Tuple<int, int> rndOption = randomSelection();
+		Tuple<int, int> aiOptionLinear = gridLinearSearch(x, y);
+		Tuple<int, int> aiOptionDiag = gridDiagonalSearch(x, y);
+
+		if (ValidSpot(aiOptionLinear.Item1, aiOptionLinear.Item2)) {
+			AiSelects(aiOptionLinear.Item1, aiOptionLinear.Item2);
+		} else if (ValidSpot(aiOptionDiag.Item1, aiOptionDiag.Item2)) {
+			AiSelects(aiOptionDiag.Item1, aiOptionDiag.Item2);
+		} else {
+			AiSelects(rndOption.Item1, rndOption.Item2);
+		}
 	}
 
 	// Called under: PlayerSelects(int x, int y) and AiSelects(int x, int y)
@@ -175,50 +207,21 @@ public class TicTacToeAI : MonoBehaviour
 		);
 
 		boardState[coordX, coordY] = targetState; // Saves this placement
-		move++;
-
-		// check if that was winning move to end game
-		// else if no empty spots then ended in tie
-
-		// Next player's turn
-		if (_isPlayerTurn) {
-			_isPlayerTurn = false;
-			AiPlacement(coordX, coordY);
-		}
-
-		// call func to check for win?
-
-		if (move == 9) {
-			// check for win, going to create row search, 
-		}
-	}
-
-	// This function makes the move for the ai
-	// Change this to account for difficulty?
-	private void AiPlacement(int x, int y){
-		Tuple<int, int> rndOption = randomSelection();
-		Tuple<int, int> aiOptionLinear = gridLinearSearch(x, y);
-		Tuple<int, int> aiOptionDiag = gridDiagonalSearch(x, y);
-
-		if (aiOptionLinear.Item1 != -1) {
-			AiSelects(aiOptionLinear.Item1, aiOptionLinear.Item2);
-		} else if (aiOptionDiag.Item1 != -1) {
-			AiSelects(aiOptionDiag.Item1, aiOptionDiag.Item2);
-		} else {
-			AiSelects(rndOption.Item1, rndOption.Item2);
-		}
 	}
 
 	// Returns where to find random empty spot on board
 	private Tuple<int, int> randomSelection() {
 		System.Random rnd = new System.Random();
-		int row = rnd.Next(0, 3);
-		int col = rnd.Next(0, 3);
+		int row = -1;
+		int col = -1;
 
-		do {
-			row = rnd.Next(0, 3);
-			col = rnd.Next(0, 3);
-		} while (boardState[row, col] != TicTacToeState.none);
+		if (movesLeft > 1)
+		{
+			do {
+				row = rnd.Next(0, 3);
+				col = rnd.Next(0, 3);
+			} while (boardState[row, col] != TicTacToeState.none);
+		}
 
 		return Tuple.Create(row, col);
 	}
@@ -234,12 +237,12 @@ public class TicTacToeAI : MonoBehaviour
 		for (int x = 0; x < _gridSize; x++) {
 			if (boardState[row, x] == TicTacToeState.circle) {
 				rowCount++;
-			} else if (boardState[row, x] == TicTacToeState.none) {
+			} else if (ValidSpot(row, x)) {
 				jEmpty = x;
 			}
 			if (boardState[x, col]== TicTacToeState.circle) {
 				colCount++;
-			} else if (boardState[x, col] == TicTacToeState.none) {
+			} else if (ValidSpot(x, col)) {
 				iEmpty = x;
 			}
 		}
@@ -261,10 +264,13 @@ public class TicTacToeAI : MonoBehaviour
 		int iEmpty = -1;
 		int jEmpty = -1;
 
+		int n = 0;
+
+
 		for (int i = 0; i < _gridSize; i++) {
 			if (boardState[i, i] == TicTacToeState.circle) {
 				rLCount++;
-			} else if (boardState[row, i] == TicTacToeState.none) {
+			} else if (ValidSpot(i, i)) {
 				iEmpty = i;
 			}
 		}
@@ -275,14 +281,23 @@ public class TicTacToeAI : MonoBehaviour
 			return Tuple.Create(-1, -1);
 		}
 
-		for (int i = 0; i < 3; i++){
+/*		for (int i = 0; i < 3; i++){
 			for (int j = 2; j >= 0 && i + j == 2; j--) {
 				if (boardState[i, j] == TicTacToeState.circle) {
 					lRCount++;
-				} else if (boardState[row, i] == TicTacToeState.none) {
+				} else if (ValidSpot(i, j)) {
 					iEmpty = i;
 					jEmpty = j;
 				}
+			}
+		} */
+
+		for (int i = 0; i < 3; i++, n = 2 - i) {
+			if (boardState[i, n] == TicTacToeState.circle) {
+				lRCount++;
+			} else if (ValidSpot(i, n)) {
+				iEmpty = i;
+				jEmpty = n;
 			}
 		}
 
@@ -292,4 +307,51 @@ public class TicTacToeAI : MonoBehaviour
 			return Tuple.Create(-1, -1);
 		}
 	}
+
+	private void findWinner() {
+		if (_isPlayerTurn && isWinner(playerState)) {
+			winFlag = true;
+			onPlayerWin.Invoke(0);
+		} else if (!_isPlayerTurn && isWinner(aiState)) {
+			winFlag = true;
+			onPlayerWin.Invoke(1);
+		} else if (movesLeft < 1) {
+			// check for win, going to create row search,
+			onPlayerWin.Invoke(-1);
+		}
+	}
+
+	// Hard code check for the winner
+	private bool isWinner(TicTacToeState winIcon) {
+		// rows:
+		if (boardState[0, 0] == winIcon && boardState[0, 1] == winIcon && boardState[0, 2] == winIcon) {
+			return true;
+		}
+		if (boardState[1, 0] == winIcon && boardState[1, 1] == winIcon && boardState[1, 2] == winIcon) {
+			return true;
+		}
+		if (boardState[2, 0] == winIcon && boardState[2, 1] == winIcon && boardState[2, 2] == winIcon) {
+			return true; }
+
+		// columns:
+		if (boardState[0, 0] == winIcon && boardState[1, 0] == winIcon && boardState[2, 0] == winIcon) {
+			return true;
+		}
+		if (boardState[0, 1] == winIcon && boardState[1, 1] == winIcon && boardState[2, 1] == winIcon) {
+			return true;
+		}
+		if (boardState[0, 2] == winIcon && boardState[1, 2] == winIcon && boardState[2, 2] == winIcon) {
+			return true;
+		}
+
+		// Right -> Left and Left -> Right diagonals:
+		if (boardState[0, 0] == winIcon && boardState[1, 1] == winIcon && boardState[2, 2] == winIcon) {
+			return true;
+		}
+		if (boardState[0, 2] == winIcon && boardState[1, 1] == winIcon && boardState[2, 0] == winIcon) {
+			return true;
+		}
+		return false;
+	}
 }
+
