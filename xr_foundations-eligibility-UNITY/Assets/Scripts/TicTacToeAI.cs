@@ -264,7 +264,7 @@ public class TicTacToeAI : MonoBehaviour
 		int iEmpty = -1;
 		int jEmpty = -1;
 
-		int n = 0;
+		int n = 2;
 
 		// R -> L Diagonal. They'd have the same index
 		for (int i = 0; i < _gridSize; i++) {
@@ -282,7 +282,7 @@ public class TicTacToeAI : MonoBehaviour
 		}
 
 		// L -> R Diagonal. Their index would add up to = 2
-		for (int i = 0; i < _gridSize; i++, n = (_gridSize - 1) - i) {
+		for (int i = 0; i < 3; i++, n--) {
 			if (boardState[i, n] == TicTacToeState.circle) {
 				lRCount++;
 			} else if (ValidSpot(i, n)) {
